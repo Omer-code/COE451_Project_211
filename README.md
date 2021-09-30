@@ -1,5 +1,6 @@
+COE-451 Term Project
 
-This is step by step demonstration for COE-451 term project.
+This is step by step demonstration for phase one of COE-451 term project.
 
 Project Description:
 Build a client-server file transfer application using any programming language of your choice. The
@@ -12,11 +13,11 @@ prompt should be provided back to the user. If the user issues a QUIT command, t
 application should close the TCP connection and terminate the client application.
 
 * Requirements to run the project:
-1. Python
-2. Python Socket package
-3. Python OS package
-4. preferably a virtual machine for testing
-
+1. Python.
+2. Python Socket package.
+3. Python OS package.
+4. Preferably a virtual machine for testing.
+5. When sending files from the server or client, make sure the files are located in the workplace of your project.
 
 * You can watch the video linked below for a live demo:
-https://kfupmedusa.sharepoint.com/:v:/s/gg606/Efntyf5FBZNMswTQpTV8Yt4Bf7SooBfiHMDIc3lzuhN7Jg?e=ATdksY
+https://kfupmedusa.sharepoint.com/:v:/s/gg606/EdgypfBWUPRCvcg2a9iA5LsBVqFrtHT_-OTb2DTpfAzqCA?e=XICJ8p
