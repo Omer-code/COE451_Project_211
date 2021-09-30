@@ -17,5 +17,6 @@ application should close the TCP connection and terminate the client application
 3. Python OS package
 4. preferably a virtual machine for testing
 
+
 * You can watch the video linked below for a live demo:
-    https://kfupmedusa.sharepoint.com/:v:/s/gg606/Efntyf5FBZNMswTQpTV8Yt4Bf7SooBfiHMDIc3lzuhN7Jg?e=ATdksY
+https://kfupmedusa.sharepoint.com/:v:/s/gg606/Efntyf5FBZNMswTQpTV8Yt4Bf7SooBfiHMDIc3lzuhN7Jg?e=ATdksY
