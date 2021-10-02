@@ -21,3 +21,9 @@ application should close the TCP connection and terminate the client application
 
 * You can watch the video linked below for a live demo:
 https://kfupmedusa.sharepoint.com/:v:/s/gg606/EdgypfBWUPRCvcg2a9iA5LsBVqFrtHT_-OTb2DTpfAzqCA?e=XICJ8p
+
+* References:
+-for sending files via tcp client-server application:
+     https://www.thepythoncode.com/article/send-receive-files-using-sockets-python
+-for socket programming:
+     https://www.youtube.com/watch?v=3QiPPX-KeSc  
