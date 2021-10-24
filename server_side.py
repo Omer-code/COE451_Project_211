@@ -57,20 +57,26 @@ if __name__ == '__main__':
     print(f"[+] {address} is connected.")
 
     # a while loop to ensure the server is waiting for commands
-    while request_type !="quit":
+    while True:
         decrypt_flag = False
         # receive the request type
-        received = client_socket.recv(BUFFER_SIZE).decode()
-        request_type, encrypt_flag = received.split(SEPARATOR)
-        print(encrypt_flag)
-        print(len(encrypt_flag))
-        if encrypt_flag == "True":
-            iv = client_socket.recv(BUFFER_SIZE)
-            print(iv)
-            decrypt_flag = True
-        # print the request type
+        request_type = client_socket.recv(BUFFER_SIZE).decode()
         print(request_type)
-        if request_type=="put":
+        if request_type == "quit":
+            print("Quit!")
+            # close the client socket
+            client_socket.close()
+            # close the server socket
+            s.close()
+            break
+        # print the request type
+        elif request_type=="put":
+            encrypt_flag = client_socket.recv(BUFFER_SIZE).decode()
+            print(encrypt_flag)
+            if encrypt_flag == "True":
+                iv = client_socket.recv(BUFFER_SIZE)
+                print(iv)
+                decrypt_flag = True
             # receive the file infos
             # receive using client socket, not server socket
             received = client_socket.recv(BUFFER_SIZE).decode()
@@ -104,7 +110,7 @@ if __name__ == '__main__':
                 if encrypt_prompt =="y":
                     print(iv)
                     decrypt_file(iv, filename, filename)
-        if request_type=="get":
+        elif request_type=="get":
             # receive the filename of the file you want to get
             filename = client_socket.recv(BUFFER_SIZE).decode()
             # get the file size
@@ -112,7 +118,10 @@ if __name__ == '__main__':
             # send the filename and filesize
             client_socket.send(f"{filesize}".encode())
             # start sending the file
-            with open(filename, "rb") as f:
+            opened_file = 'enc.txt'
+            iv = get_random_bytes(16)
+            client_socket.send(iv)
+            with open(opened_file, "rb") as f:
                 while True:
                     # read the bytes from the file
                     bytes_read = f.read(BUFFER_SIZE)
@@ -125,9 +134,8 @@ if __name__ == '__main__':
                     # busy networks
                     client_socket.sendall(bytes_read)
                     # update the progress bar
+        else:
+            break
 
-    # close the client socket
-    client_socket.close()
-    # close the server socket
-    s.close()
+    
 
