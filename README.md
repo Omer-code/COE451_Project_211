@@ -59,12 +59,12 @@ file.
 6. When sending files from the server or client, make sure the files are located in the workplace of your project.
 
 * You can watch the video linked below for a step by step live demo:
-https://kfupmedusa.sharepoint.com/:v:/s/gg606/EdgypfBWUPRCvcg2a9iA5LsBVqFrtHT_-OTb2DTpfAzqCA?e=XICJ8p
+https://kfupmedusa.sharepoint.com/:v:/s/gg606/EU6_5i80eD1Alicyn_MjhCUBkpy81pW_y-sDtLkvh5bmjg?e=0EuYMq
 
 * Or, you can follow the the instructions below:
 1. Run server_side.py on one of your machines.
 2. Run client_side.py on another machine.
-3. In the client side, it will ask you for the IP address of your server, enter the IP. (you can check your IP address by ipconfig command)
+3. In the client side, it will ask you for the IP address of your server, enter the IP. (in my Vbox, my network setting is NAT, check yours)
 4. After the connection is established, the program will ask you to choose one of three commands: PUT, GET, or QUIT. (refer to phase one for more about this)
      -for PUT command: 
           1. you can choose whether you to encrypt the file ot not, then enter the file you want to send.
