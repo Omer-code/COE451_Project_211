@@ -74,6 +74,7 @@ https://kfupmedusa.sharepoint.com/:v:/s/gg606/EU6_5i80eD1Alicyn_MjhCUBkpy81pW_y-
           2. you will receive an encrypted the file, you can choose whether to decrypt it or not.
      -for QUIT command:
           it will terminate both programs and close the socket.
+* Important Note: when you encrypt or decrypt a big file in the server side, it might take a while because of the print statements for error checking and verification, remove those print statements and it should be way faster.
 
 * References:
 -for AES encryption:
