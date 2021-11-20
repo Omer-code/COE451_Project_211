@@ -4,10 +4,13 @@ from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from Crypto.Random import get_random_bytes # a cryptographically secure random number generator method, that get sourced directly from the OS
 from binascii import unhexlify
+import hashlib
+
 # define constants
 # The symmetric 256 bits key, generated from my student ID hash value (used SHA-256)
 KEY = unhexlify('46c5ae5c3023b4bda04f589346cb26830a7667943b9f55bf0d187da91ce40a1f')
 SEPARATOR = "<SEPARATOR>"
+BYTES_SEPARATOR = b'*-<SEPARATOR>-*'
 BUFFER_SIZE = 4096 # send 4096 bytes each time step
 
 # two prime large numbers p1,q1
@@ -21,6 +24,68 @@ e1 = 7
 N1_reduced = p1_reduced*q1_reduced
 # client private Key d1
 d1 = pow(e1, -1, N1_reduced)
+
+# two prime large numbers p2,q2
+p2=11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
+q2=1357911131517193133353739515355575971737577799193959799111113115117119131133135137139151153155157159171173175177179191193195197199311313315317319331333335337339351353355357359371373375377379391393395397399511513515517519531533535537539551553555557559571573575577579591593595597599711713715717719731733735737739751753755757759771
+# server public Key (N2,e2)
+N2 = p2*q2
+e2 = 17
+
+# prime number m
+m = int('0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF',base=16)
+# generator g
+g = 2
+
+H = hashlib.sha256()
+
+def authenticate_bob(s):
+        a =  int.from_bytes(os.urandom(256),'big')
+        Ra = os.urandom(32)
+        Ka = pow(g,a,m)
+        print(Ka)
+        Ka_bytes = str(Ka).encode()
+        print(int(Ka_bytes.decode()))
+        s.send(Ra+BYTES_SEPARATOR+Ka_bytes)
+        print('Ra:')
+        print(Ra)
+        received = s.recv(2048)
+        print(received)
+        Rb, Kb, Sb = received.split(BYTES_SEPARATOR)
+        Kb_bytes = Kb
+        Kb = int(Kb)
+        print('Kb:')
+        print(Kb)
+        print('Rb:')
+        print(Rb)
+        print('Sb:')
+        print(Sb)
+        Sb = int(Sb.decode())
+        H.update(b'Alice')
+        H.update(b'Bob')
+        H.update(Ra)
+        H.update(Rb)
+        H.update(Ka_bytes)
+        H.update(Kb_bytes)
+        K = pow(Kb,a,m)
+        print('K:')
+        print(K)
+        K_bytes = str(K).encode()
+        H.update(K_bytes)
+        print(H.digest())
+        print(H.digest()+b'Bob')
+        B = int.from_bytes(H.digest()+b'Bob','big')
+        A = int.from_bytes(H.digest()+b'Alice','big')
+        print(str(B).encode())
+        Sa = pow(A,d1,N1) 
+        H2 = pow(Sb,e2,N2)
+        print(B)
+        print(H2)
+        if H2 == B:
+            print('Good, this is Bob!')
+        else:
+            print('Bad, Trudyyyyyy!!!')
+        a = 0
 
 # our encrypt function, takes a file as an input and produce a decrypted file
 def encrypt_file(iv, input_file, output_file):
@@ -61,6 +126,7 @@ if __name__ == '__main__':
     print(f"[+] Connecting to {host}:{port}")
     s.connect((host, port))
     print("[+] Connected.")
+    authenticate_bob(s)
     # a while loop to ensure the client is waiting for commands from user
     while True:
         # a flag to know whather we need to encrypt or not

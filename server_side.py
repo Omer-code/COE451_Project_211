@@ -3,19 +3,21 @@ import os
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import pad, unpad
 from Crypto.Random import get_random_bytes # a cryptographically secure random number generator method, that get sourced directly from the OS
-from binascii import unhexlify, hexlify 
+from binascii import unhexlify, hexlify
+import hashlib
+
 
 # define constants
 # The symmetric 256 bits key, generated from my student ID hash value (used SHA-256)
-KEY = unhexlify('46c5ae5c3023b4bda04f589346cb26830a7667943b9f55bf0d187da91ce40a1f')
+KEY = ''
 print('Key: ')
-print(KEY)
 # device's IP address
 SERVER_HOST = socket.gethostbyname(socket.gethostname())
 SERVER_PORT = 5001
 # receive 4096 bytes each time
 BUFFER_SIZE = 4096
 SEPARATOR = "<SEPARATOR>"
+BYTES_SEPARATOR = b'*-<SEPARATOR>-*'
 
 # two prime large numbers p2,q2
 p2=11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
@@ -28,6 +30,64 @@ N2_reduced = q2_reduced*p2_reduced
 e2 = 17
 # server private Key d2
 d2 = pow(e2, -1, N2_reduced)
+
+p1=3130000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001183811000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000313
+p1_reduced = p1 - 1
+q1=3136666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666313
+q1_reduced = q1 - 1
+# client public Key (N1,e1)
+N1 = p1*q1
+e1 = 7
+
+# prime number m
+m = int('0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF',base=16)
+# generator g
+g = 2
+
+H = hashlib.sha256()
+H_K = hashlib.sha256()
+
+def authenticate_alice(conn):
+    b =  int.from_bytes(os.urandom(256),'big')
+    Rb =  os.urandom(32)
+    Kb = pow(g,b,m)
+    Kb_bytes = str(Kb).encode()
+    received = conn.recv(2048)
+    Ra, Ka = received.split(BYTES_SEPARATOR)
+    Ka_bytes = Ka
+    Ka = int(Ka.decode())
+    H.update(b'Alice')
+    H.update(b'Bob')
+    H.update(Ra)
+    H.update(Rb)
+    H.update(Ka_bytes)
+    H.update(Kb_bytes)
+    K = pow(Ka,b,m)
+    K_bytes = str(K).encode()
+    H_K.update(K_bytes)
+    Hashed_key = H_K.digest()
+    H.update(K_bytes)
+    B = int.from_bytes(H.digest()+b'Bob','big')
+    A = int.from_bytes(H.digest()+b'Alice','big')
+    Sb = pow(B,d2,N2)
+    Sb_bytes = str(Sb).encode()
+    conn.send(Rb+BYTES_SEPARATOR+Kb_bytes+BYTES_SEPARATOR+Sb_bytes)
+    b = 0
+    received = conn.recv(2048)
+    iv, bytes_read = received.split(BYTES_SEPARATOR)
+    print(iv)
+    AES_opject = AES.new(Hashed_key,AES.MODE_CBC,iv)
+    data_bytes = AES_opject.decrypt(bytes_read)
+    unpaded_bytes = unpad(data_bytes,AES.block_size)
+    print(unpaded_bytes)
+    l,Sa = unpaded_bytes.split(b'Alice')
+    Sa = int(Sa.decode())
+    H2 = pow(Sa,e1,N1)
+    if H2 == A:
+        return True
+    else:
+        return False
+
 
 # our encrypt function, takes a file as an input and produce a decrypted file
 def encrypt_file(iv, input_file, output_file):
@@ -87,7 +147,19 @@ if __name__ == '__main__':
     client_socket, address = s.accept() 
     # if below code is executed, that means the sender is connected
     print(f"[+] {address} is connected.")
-
+    print('Authenticating Client...')
+    if authenticate_alice(client_socket):
+            print('Good, Alice!')
+            KEY = H_K.digest()
+    else:
+        print('Game Over Buddy, Trudy')
+        request_type = "quit"
+        print("Quit!")
+        # close the client socket
+        client_socket.close()
+        # close the server socket
+        s.close()
+        exit()
     # a while loop to ensure the server is waiting for commands
     while True:
         # a flag to know whather we need to decrypt or not
@@ -97,6 +169,7 @@ if __name__ == '__main__':
         # print the request
         print('REQUEST: ')
         print(request_type)
+        
         # quit from the server side
         if request_type == "quit":
             print("Quit!")
