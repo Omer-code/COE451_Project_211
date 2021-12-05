@@ -82,3 +82,45 @@ https://kfupmedusa.sharepoint.com/:v:/s/gg606/EU6_5i80eD1Alicyn_MjhCUBkpy81pW_y-
      https://www.youtube.com/watch?v=KRA_scVTBp0
 -for online AES encryption tool:
      https://cryptii.com/pipes/aes-encryption
+
+## Phase Three:
+
+Phase Three Description:
+Modify the file transfer application that you had for phase 2 so that your code authenticates the
+client and the server to each other, then establishes a session key to be used by them to
+encrypt/decrypt the files exchanged between them. To achieve these objectives, implement the
+protocol provided on the last page of the project document. When implemented properly, the provided protocol achieves
+mutual authentication, perfect forward secrecy (PFS), and is immune against man-in-the-middle
+(MiM) attacks.
+
+* Requirements to run the project:
+1. Python.
+2. Python Socket package.
+3. Python OS package.
+4. Python pycryptodome package.
+5. Python hashlib package.
+6. Preferably a virtual machine for testing.
+7. When sending files from the server or client, make sure the files are located in the workplace of your project.
+
+* You can watch the video linked below for a step by step live demo:
+https://kfupmedusa.sharepoint.com/:v:/s/gg606/EU6_5i80eD1Alicyn_MjhCUBkpy81pW_y-sDtLkvh5bmjg?e=0EuYMq
+
+* Or, you can follow the the instructions below:
+1. Run server_side.py on one of your machines.
+2. Run client_side.py on another machine.
+3. In the client side, it will ask you for the IP address of your server, enter the IP. (in my Vbox, my network setting is NAT, check yours)
+4. After the connection is established, the program will authenticate each side to the other, client to server (Alice to Bob), and server to client (Bob to Alice). If each side is authenticated, then the program will proceed to the next step, otherwise, the program will terminate and the connection will be closed.
+5. After the authentication phase, the program will ask you to choose one of three commands: PUT, GET, or QUIT. (refer to phase one for more about this)
+     -for PUT command: 
+          1. you can choose whether you to encrypt the file ot not, then enter the file you want to send.
+          2. in case you have encrypted the file, from your server side, you can choose whether to decrypt it or not.
+     -for GET command:
+          1. enter the file you want to receive from the server side.
+          2. you will receive an encrypted the file, you can choose whether to decrypt it or not.
+     -for QUIT command:
+          it will terminate both programs and close the socket.
+* Important Note: when you encrypt or decrypt a big file in the server side, it might take a while because of the print statements for error checking and verification, remove those print statements and it should be way faster.
+
+* References:
+-for hashing in python:
+     https://docs.python.org/3/library/hashlib.html

@@ -5,14 +5,12 @@ from Crypto.Util.Padding import pad, unpad
 from Crypto.Random import get_random_bytes # a cryptographically secure random number generator method, that get sourced directly from the OS
 from binascii import unhexlify
 import hashlib
-
 # define constants
 # The symmetric 256 bits key, generated from my student ID hash value (used SHA-256)
 KEY = unhexlify('46c5ae5c3023b4bda04f589346cb26830a7667943b9f55bf0d187da91ce40a1f')
 SEPARATOR = "<SEPARATOR>"
 BYTES_SEPARATOR = b'*-<SEPARATOR>-*'
 BUFFER_SIZE = 4096 # send 4096 bytes each time step
-
 # two prime large numbers p1,q1
 p1=3130000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001183811000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000313
 p1_reduced = p1 - 1
@@ -21,46 +19,36 @@ q1_reduced = q1 - 1
 # client public Key (N1,e1)
 N1 = p1*q1
 e1 = 7
+# (p1-1)(q1-1)
 N1_reduced = p1_reduced*q1_reduced
 # client private Key d1
 d1 = pow(e1, -1, N1_reduced)
-
-# two prime large numbers p2,q2
-p2=11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111
-q2=1357911131517193133353739515355575971737577799193959799111113115117119131133135137139151153155157159171173175177179191193195197199311313315317319331333335337339351353355357359371373375377379391393395397399511513515517519531533535537539551553555557559571573575577579591593595597599711713715717719731733735737739751753755757759771
+# Test case 3:
+#d1 = pow(44, 66, 555)
 # server public Key (N2,e2)
-N2 = p2*q2
+N2 = 15087901461302145926152661281728621908195308879932886656790145723523545901479279301546123923946190657457479724190879902146613302214570147947970214792592614859326126148392859548570815281970882126593282193327905705727972439239261505972661683928395083995239706395306439906595506639996796819063530219241485952641552797263801984982842534096294028942738269336473602466756226688987654098320320096540762762540094316316093648980980758313646756534089422533409854076075853407629629406962294294071626960069847402735846734289622733622276498498275831163162940495828938716271604715603158491602491156489600489155587587364920253363140696029140027582916026915581
 e2 = 17
-
 # prime number m
 m = int('0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF',base=16)
 # generator g
 g = 2
-
+ 
+# the hash object for H
 H = hashlib.sha256()
-
+H_K = hashlib.sha256()
+ 
 def authenticate_bob(s):
         a =  int.from_bytes(os.urandom(256),'big')
         Ra = os.urandom(32)
         Ka = pow(g,a,m)
-        print(Ka)
         Ka_bytes = str(Ka).encode()
-        print(int(Ka_bytes.decode()))
         s.send(Ra+BYTES_SEPARATOR+Ka_bytes)
-        print('Ra:')
-        print(Ra)
         received = s.recv(2048)
-        print(received)
         Rb, Kb, Sb = received.split(BYTES_SEPARATOR)
         Kb_bytes = Kb
         Kb = int(Kb)
-        print('Kb:')
-        print(Kb)
-        print('Rb:')
-        print(Rb)
-        print('Sb:')
-        print(Sb)
-        Sb = int(Sb.decode())
+        Sb_bytes = Sb
+        Sb = int(Sb_bytes.decode())
         H.update(b'Alice')
         H.update(b'Bob')
         H.update(Ra)
@@ -68,25 +56,28 @@ def authenticate_bob(s):
         H.update(Ka_bytes)
         H.update(Kb_bytes)
         K = pow(Kb,a,m)
-        print('K:')
-        print(K)
         K_bytes = str(K).encode()
+        H_K.update(K_bytes)
+        Hashed_key = H_K.digest()
         H.update(K_bytes)
-        print(H.digest())
-        print(H.digest()+b'Bob')
         B = int.from_bytes(H.digest()+b'Bob','big')
         A = int.from_bytes(H.digest()+b'Alice','big')
-        print(str(B).encode())
-        Sa = pow(A,d1,N1) 
+        Sa = pow(A,d1,N1)
+        Sa_bytes = str(Sa).encode()
         H2 = pow(Sb,e2,N2)
-        print(B)
-        print(H2)
         if H2 == B:
-            print('Good, this is Bob!')
+            a = 0
+            bytes_read = b'Alice'+Sa_bytes
+            paded_bytes = pad(bytes_read,AES.block_size)
+            iv = os.urandom(16)
+            AES_opject = AES.new(Hashed_key,AES.MODE_CBC,iv)
+            cipher_text = AES_opject.encrypt(paded_bytes)
+            s.send(iv+BYTES_SEPARATOR+cipher_text)
+            return True
         else:
-            print('Bad, Trudyyyyyy!!!')
-        a = 0
-
+            s.send(os.urandom(16)+BYTES_SEPARATOR+os.urandom(64))
+            return False
+      
 # our encrypt function, takes a file as an input and produce a decrypted file
 def encrypt_file(iv, input_file, output_file):
     # read the data from the input_file
@@ -126,8 +117,18 @@ if __name__ == '__main__':
     print(f"[+] Connecting to {host}:{port}")
     s.connect((host, port))
     print("[+] Connected.")
-    authenticate_bob(s)
-    # a while loop to ensure the client is waiting for commands from user
+    print('Authenticating Server...')
+    if authenticate_bob(s):
+        print('Good, this is Bob!')
+        KEY = H_K.digest()
+    else:
+        print('Baaaaaad, Trudyyyyyy!!!')
+        request_type = "quit"
+        print("Quit!\n")
+        # close the socket
+        s.close()
+        exit()
+   # a while loop to ensure the client is waiting for commands from user
     while True:
         # a flag to know whather we need to encrypt or not
         encrypt_flag = False
@@ -207,14 +208,13 @@ if __name__ == '__main__':
             # let the user decide wether to decrypt the file or not
             decrypt_prompt = input("You have received an encrypted file. Do you want to decrypt it? (y/n)")
             if decrypt_prompt == "y":
-                # start decrypting the received file 
+                # start decrypting the received file
                 decrypt_file(iv, filename, filename)
                 print(filename+ ' has been decrypted.')
         # in case we got a wrong request
         else:
             print("Wrong Input! Please enter one of the three commands, GET, PUT, or QUIT.\n")
     print("Done! Thank You!")
-
 ########################################
 # References:
 # for sending files via tcp client-server:
@@ -227,3 +227,6 @@ if __name__ == '__main__':
 # online AES encryption tool:
 #     https://cryptii.com/pipes/aes-encryption
 ########################################
+ 
+ 
+ 
