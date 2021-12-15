@@ -26,57 +26,83 @@ q2_reduced = q2 - 1
 N2 = p2*q2
 N2_reduced = q2_reduced*p2_reduced
 e2 = 17
-# server private Key d2
+# server's (Bob) private Key d2
 d2 = pow(e2, -1, N2_reduced)
-# Test case 3:
+# Test case 2:
 #d2 = pow(e2, -1, N2_reduced+10)
 
 
-# client public Key (N1,e1)
+# client's (Alice) public Key (N1,e1)
 N1 = 9817766666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666670379887169999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999874799999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999581325509666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666666555969
 e1 = 7
-# prime number m
+# prime number m from 2048-bit MODP Group
 m = int('0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF',base=16)
 # generator g
 g = 2
 
+# hash object for H
 H = hashlib.sha256()
+# the hash object for H_K
 H_K = hashlib.sha256()
 
 def authenticate_alice(conn):
+    # generate random exponent b
     b =  int.from_bytes(os.urandom(256),'big')
+    print('b: ',b)
+    # generate random number Rb
     Rb =  os.urandom(32)
+    # compute g^b mod m
     Kb = pow(g,b,m)
+    # convert to bytes
     Kb_bytes = str(Kb).encode()
+    # recivce Ra, Ka from Alice
     received = conn.recv(2048)
     Ra, Ka = received.split(BYTES_SEPARATOR)
     Ka_bytes = Ka
     Ka = int(Ka.decode())
+    # compute the hash of ('Alice', 'Bob', Ra, Rb, Ka, Kb, K)
     H.update(b'Alice')
     H.update(b'Bob')
     H.update(Ra)
+    print('Ra: ',Ra)
+    print('Rb: ',Rb)
     H.update(Rb)
     H.update(Ka_bytes)
     H.update(Kb_bytes)
+    # campute the session key K (g^ba mod m)
     K = pow(Ka,b,m)
+    print('K as number: ',K)
+    # convert to bytes
     K_bytes = str(K).encode()
+    print('K as bytes: ',K_bytes)
+    # compute the hash of session key
     H_K.update(K_bytes)
     Hashed_key = H_K.digest()
     H.update(K_bytes)
+    # get the int value of the hash
     B = int.from_bytes(H.digest()+b'Bob','big')
     A = int.from_bytes(H.digest()+b'Alice','big')
+    # sign the hash with Bob's private key
     Sb = pow(B,d2,N2)
+    # convert to bytes
     Sb_bytes = str(Sb).encode()
+    # send Rb, Kb and the signature 
     conn.send(Rb+BYTES_SEPARATOR+Kb_bytes+BYTES_SEPARATOR+Sb_bytes)
-    b = 0
+    # delete the private key for PFS
+    b = 0 
+    # recivce the ecncrypted Sa and 'Alice' from Alice
     received = conn.recv(2048)
     iv, bytes_read = received.split(BYTES_SEPARATOR)
+    print('IV: ',iv)
     AES_opject = AES.new(Hashed_key,AES.MODE_CBC,iv)
+    # decryprt the message with the session key (Hashed_key)
     data_bytes = AES_opject.decrypt(bytes_read)
     unpaded_bytes = unpad(data_bytes,AES.block_size)
     l,Sa = unpaded_bytes.split(b'Alice')
     Sa = int(Sa.decode())
+    # decrypt the Sa (signature) to get the hash 
     H2 = pow(Sa,e1,N1)
+    # check for Alice
     if H2 == A:
         return True
     else:

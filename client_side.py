@@ -28,27 +28,36 @@ d1 = pow(e1, -1, N1_reduced)
 # server public Key (N2,e2)
 N2 = 15087901461302145926152661281728621908195308879932886656790145723523545901479279301546123923946190657457479724190879902146613302214570147947970214792592614859326126148392859548570815281970882126593282193327905705727972439239261505972661683928395083995239706395306439906595506639996796819063530219241485952641552797263801984982842534096294028942738269336473602466756226688987654098320320096540762762540094316316093648980980758313646756534089422533409854076075853407629629406962294294071626960069847402735846734289622733622276498498275831163162940495828938716271604715603158491602491156489600489155587587364920253363140696029140027582916026915581
 e2 = 17
-# prime number m
+# prime number m from 2048-bit MODP Group
 m = int('0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF',base=16)
 # generator g
 g = 2
  
 # the hash object for H
 H = hashlib.sha256()
+# the hash object for H_K
 H_K = hashlib.sha256()
  
 def authenticate_bob(s):
+        # generate random exponent a
         a =  int.from_bytes(os.urandom(256),'big')
+        # generate random number Ra
         Ra = os.urandom(32)
+        # compute g^a mod m
         Ka = pow(g,a,m)
+        # convert to bytes
         Ka_bytes = str(Ka).encode()
+        # send Ra, Ka to Bob
         s.send(Ra+BYTES_SEPARATOR+Ka_bytes)
+        # recivce Rb, Kb, Sb (signature) from Bob
         received = s.recv(2048)
         Rb, Kb, Sb = received.split(BYTES_SEPARATOR)
         Kb_bytes = Kb
         Kb = int(Kb)
         Sb_bytes = Sb
+        # convert from bytes to int
         Sb = int(Sb_bytes.decode())
+        # compute the hash of ('Alice', 'Bob', Ra, Rb, Ka, Kb, K)
         H.update(b'Alice')
         H.update(b'Bob')
         H.update(Ra)
@@ -57,24 +66,32 @@ def authenticate_bob(s):
         H.update(Kb_bytes)
         K = pow(Kb,a,m)
         K_bytes = str(K).encode()
+        # compute the hash of session key
         H_K.update(K_bytes)
         Hashed_key = H_K.digest()
         H.update(K_bytes)
+        # get the int value of the hash
         B = int.from_bytes(H.digest()+b'Bob','big')
         A = int.from_bytes(H.digest()+b'Alice','big')
         Sa = pow(A,d1,N1)
         Sa_bytes = str(Sa).encode()
+        # decrypt the Sb (signature) to get the hash 
         H2 = pow(Sb,e2,N2)
+        # delete the private key for PFS
+        a = 0
+        # check for Bob
         if H2 == B:
-            a = 0
             bytes_read = b'Alice'+Sa_bytes
             paded_bytes = pad(bytes_read,AES.block_size)
             iv = os.urandom(16)
+            # encryprt with the session key (Hashed_key)
             AES_opject = AES.new(Hashed_key,AES.MODE_CBC,iv)
             cipher_text = AES_opject.encrypt(paded_bytes)
+            # send the ecncrypted Sa and 'Alice' to Bob
             s.send(iv+BYTES_SEPARATOR+cipher_text)
             return True
         else:
+            # send random bytes to Trudy
             s.send(os.urandom(16)+BYTES_SEPARATOR+os.urandom(64))
             return False
       
