@@ -64,6 +64,7 @@ def authenticate_bob(s):
         H.update(Rb)
         H.update(Ka_bytes)
         H.update(Kb_bytes)
+        # campute the session key K (g^ab mod m)
         K = pow(Kb,a,m)
         K_bytes = str(K).encode()
         # compute the hash of session key
